@@ -30,6 +30,17 @@ input {
   width: 6em;
 }
 
+input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.check {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 textarea {
   width: 100%;
   resize: vertical;

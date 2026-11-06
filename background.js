@@ -1,8 +1,9 @@
 import {
-  badgeText,
+  ACCEPTED_ONLY_KEY,
   IGNORED_TITLES_KEY,
   ignoredTitles,
   LEAD_STORAGE_KEY,
+  meetingBadge,
   normalizeLeadMinutes,
   pickMeetings,
   tooltip,
@@ -29,7 +30,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
-  if (changes[IGNORED_TITLES_KEY]) refresh();
+  if (changes[IGNORED_TITLES_KEY] || changes[ACCEPTED_ONLY_KEY]) refresh();
   else if (changes[LEAD_STORAGE_KEY]) reapply();
 });
 
@@ -192,11 +193,12 @@ async function arm(state) {
   const wakes = [];
   if (state.next) {
     const untilStart = Date.parse(state.next.start) - now;
-    if (untilStart > 0 && untilStart <= leadMs) {
+    const countdown = meetingBadge(state.next, now, state.leadMinutes, state.acceptedOnly);
+    if (countdown && untilStart > 0 && untilStart <= leadMs) {
       await chrome.alarms.create("tick", { periodInMinutes: 1 });
     }
     if (untilStart > 0) {
-      wakes.push(untilStart <= leadMs ? untilStart : untilStart - leadMs);
+      wakes.push(countdown && untilStart > leadMs ? untilStart - leadMs : untilStart);
     }
   }
   if (state.current) {
@@ -216,9 +218,7 @@ async function applyPresentation(state) {
   const now = Date.now();
   const leadMinutes = normalizeLeadMinutes(state.leadMinutes);
   const text =
-    state.status === "ok" && state.next
-      ? badgeText(state.next.start, now, leadMinutes)
-      : "";
+    state.status === "ok" ? meetingBadge(state.next, now, leadMinutes, state.acceptedOnly) : "";
   await chrome.action.setBadgeBackgroundColor({ color: BADGE_COLOR });
   if (chrome.action.setBadgeTextColor) {
     await chrome.action.setBadgeTextColor({ color: "#FFFFFF" });
@@ -271,6 +271,11 @@ async function getIgnoredTitles() {
   return ignoredTitles(stored[IGNORED_TITLES_KEY]);
 }
 
+async function getAcceptedOnly() {
+  const stored = await chrome.storage.local.get(ACCEPTED_ONLY_KEY);
+  return stored[ACCEPTED_ONLY_KEY] === true;
+}
+
 async function getState() {
   const stored = await chrome.storage.session.get(STATE_KEY);
   const state = stored[STATE_KEY] ?? {
@@ -281,11 +286,16 @@ async function getState() {
     next: null,
   };
   state.leadMinutes = await getLeadMinutes();
+  state.acceptedOnly = await getAcceptedOnly();
   return state;
 }
 
 async function setState(state) {
-  const { leadMinutes, ...stored } = state;
+  const { leadMinutes, acceptedOnly, ...stored } = state;
   await chrome.storage.session.set({ [STATE_KEY]: stored });
-  return { ...stored, leadMinutes: leadMinutes ?? (await getLeadMinutes()) };
+  return {
+    ...stored,
+    leadMinutes: leadMinutes ?? (await getLeadMinutes()),
+    acceptedOnly: acceptedOnly ?? (await getAcceptedOnly()),
+  };
 }

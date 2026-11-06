@@ -2,6 +2,7 @@ export const DEFAULT_LEAD_MINUTES = 90;
 export const MAX_LEAD_MINUTES = 999;
 export const LEAD_STORAGE_KEY = "leadMinutes";
 export const IGNORED_TITLES_KEY = "ignoredTitles";
+export const ACCEPTED_ONLY_KEY = "acceptedOnly";
 
 const SKIPPED_TYPES = new Set([
   "workingLocation",
@@ -23,6 +24,12 @@ export function isMeeting(event, ignored = []) {
   return true;
 }
 
+export function isAccepted(event) {
+  const self = event.attendees?.find((attendee) => attendee.self);
+  if (!self) return true;
+  return self.responseStatus === "accepted";
+}
+
 export function normalize(event) {
   return {
     id: event.id,
@@ -30,6 +37,7 @@ export function normalize(event) {
     start: event.start.dateTime,
     end: event.end.dateTime,
     htmlLink: event.htmlLink || CALENDAR_HOME,
+    accepted: isAccepted(event),
   };
 }
 
@@ -69,6 +77,11 @@ export function badgeText(startIso, now, leadMinutes = DEFAULT_LEAD_MINUTES) {
   return `${Math.ceil(ms / 60_000)}m`;
 }
 
+export function meetingBadge(meeting, now, leadMinutes, acceptedOnly) {
+  if (!meeting || (acceptedOnly && meeting.accepted === false)) return "";
+  return badgeText(meeting.start, now, leadMinutes);
+}
+
 export function formatWhen(iso, nowMs) {
   const date = new Date(iso);
   const now = new Date(nowMs);
@@ -94,7 +107,7 @@ export function tooltip(state, now, leadMinutes = state?.leadMinutes) {
   if (state.status === "signed_out") return "Sign in to Chrome to see your next meeting";
   if (state.status === "error") return "Next meeting unavailable";
   if (state.next) {
-    const badge = badgeText(state.next.start, now, leadMinutes);
+    const badge = meetingBadge(state.next, now, leadMinutes, state.acceptedOnly);
     if (badge === "now") return `${state.next.summary} starting now`;
     if (badge) return `${state.next.summary} in ${badge.slice(0, -1)} min`;
     return `${state.next.summary} at ${formatWhen(state.next.start, now)}`;

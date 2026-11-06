@@ -1,4 +1,4 @@
-import { badgeText, formatWhen } from "./shared.js";
+import { formatWhen, meetingBadge } from "./shared.js";
 
 const app = document.querySelector("#app");
 const CALENDAR_HOME = "https://calendar.google.com/calendar/r";
@@ -90,7 +90,7 @@ function calendarView(state) {
     return fragment;
   }
   if (state.current) fragment.append(currentCard(state.current, now));
-  if (state.next) fragment.append(nextCard(state.next, now, state.leadMinutes));
+  if (state.next) fragment.append(nextCard(state.next, now, state.leadMinutes, state.acceptedOnly));
   const link = state.next?.htmlLink || state.current?.htmlLink || CALENDAR_HOME;
   fragment.append(openLink(link, "Open in Calendar"));
   return fragment;
@@ -100,8 +100,8 @@ function currentCard(meeting, now) {
   return card("Now", meeting.summary, `Until ${formatWhen(meeting.end, now)}`);
 }
 
-function nextCard(meeting, now, leadMinutes) {
-  const badge = badgeText(meeting.start, now, leadMinutes);
+function nextCard(meeting, now, leadMinutes, acceptedOnly) {
+  const badge = meetingBadge(meeting, now, leadMinutes, acceptedOnly);
   const cardNode = document.createElement("section");
   cardNode.className = "card";
   if (badge) {
