@@ -11,7 +11,9 @@ import {
 
 const STATE_KEY = "state";
 const REFRESH_MINUTES = 15;
-const BADGE_COLOR = "#6419FF";
+const BADGE_RED = "#ff1919";
+const BADGE_AMBER = "#FFBF00";
+const BADGE_GREEN = "#32CD32";
 
 let refreshTask = null;
 
@@ -219,7 +221,7 @@ async function applyPresentation(state) {
   const leadMinutes = normalizeLeadMinutes(state.leadMinutes);
   const text =
     state.status === "ok" ? meetingBadge(state.next, now, leadMinutes, state.acceptedOnly) : "";
-  await chrome.action.setBadgeBackgroundColor({ color: BADGE_COLOR });
+  await chrome.action.setBadgeBackgroundColor({ color: badgeColor(state, now) });
   if (chrome.action.setBadgeTextColor) {
     await chrome.action.setBadgeTextColor({ color: "#FFFFFF" });
   }
@@ -232,6 +234,15 @@ async function authToken(interactive) {
   if (typeof result === "string") return result;
   if (typeof result?.token === "string") return result.token;
   return "";
+}
+
+function badgeColor(state, now) {
+  if (state.status === "ok" && state.next) {
+    const ms = Date.parse(state.next.start) - now;
+    if (ms > 0 && ms <= 5 * 60_000) return BADGE_RED;
+    if (ms > 0 && ms <= 15 * 60_000) return BADGE_AMBER;
+  }
+  return BADGE_GREEN;
 }
 
 function needsClientId() {
