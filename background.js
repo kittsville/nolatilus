@@ -59,7 +59,7 @@ async function doRefresh() {
 
   let token;
   try {
-    token = await chrome.identity.getAuthToken({ interactive: false });
+    token = await authToken(false);
   } catch (error) {
     const state = await setState(authFailureState(error));
     await applyPresentation(state);
@@ -122,7 +122,7 @@ async function loadEvents(token) {
   } catch (error) {
     if (error.status !== 401) throw error;
     await chrome.identity.removeCachedAuthToken({ token });
-    const fresh = await chrome.identity.getAuthToken({ interactive: false });
+    const fresh = await authToken(false);
     if (!fresh) {
       const missing = new Error("The user is not signed in.");
       missing.status = 401;
@@ -201,6 +201,13 @@ async function applyPresentation(state) {
   }
   await chrome.action.setBadgeText({ text });
   await chrome.action.setTitle({ title: tooltip(state, now) });
+}
+
+async function authToken(interactive) {
+  const result = await chrome.identity.getAuthToken({ interactive });
+  if (typeof result === "string") return result;
+  if (typeof result?.token === "string") return result.token;
+  return "";
 }
 
 function needsClientId() {
