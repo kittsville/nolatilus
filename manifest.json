@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Nolatilus",
+  "version": "1.0.0",
+  "description": "Minutes until your next Google Calendar meeting.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxnJrMjqO00ruNc0SsE8SSsaNZh7iboC9X+7AqaAOpMREcKiNCeagMmnelKUsaMjF6OIxJAYPVIPOwcInM8h1n1By4xMYd0F1OBcw7eweVGCmwoYyhdT4wS9j2WlSzyU94KoyAWJgdI5gM6k0JGtlvGfMAnmxFIZNQTFAWZiDY74GT4QLR1jXbFEnf7vFZv5ZbbqpVwtrTELwZq6aZC6WoAjNb3WuocLTxaClR4jpQF0DH3zdBbYvpIYaveZJqwhdLYRpvsJiut90zXW9WpWFMnjWEa/cGcPM15s+wPbWHgmlV8EbSNFQTKR8QNLDDG4sJLSk2NI8/qWS98HFt0zt7QIDAQAB",
+  "permissions": ["identity", "alarms", "storage"],
+  "host_permissions": ["https://www.googleapis.com/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Next meeting",
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png",
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "oauth2": {
+    "client_id": "REPLACE_ME.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/calendar.events.readonly"]
+  }
+}
