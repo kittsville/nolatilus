@@ -33,6 +33,17 @@ header img {
   border-radius: 5px;
 }
 
+header .settings {
+  margin-left: auto;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--purple);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
 #body {
   padding: 14px 16px 16px;
 }

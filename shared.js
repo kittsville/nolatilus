@@ -1,4 +1,6 @@
-export const WINDOW_MS = 91 * 60 * 1000;
+export const DEFAULT_LEAD_MINUTES = 90;
+export const MAX_LEAD_MINUTES = 999;
+export const LEAD_STORAGE_KEY = "leadMinutes";
 
 const SKIPPED_TYPES = new Set([
   "workingLocation",
@@ -40,11 +42,20 @@ export function pickMeetings(items, now) {
   return { current, next };
 }
 
-export function badgeText(startIso, now) {
+export function normalizeLeadMinutes(value) {
+  const minutes = Number(value);
+  if (!Number.isInteger(minutes) || minutes < 1 || minutes > MAX_LEAD_MINUTES) {
+    return DEFAULT_LEAD_MINUTES;
+  }
+  return minutes;
+}
+
+export function badgeText(startIso, now, leadMinutes = DEFAULT_LEAD_MINUTES) {
+  const lead = normalizeLeadMinutes(leadMinutes);
   const ms = Date.parse(startIso) - now;
-  if (!(ms > 0 && ms < WINDOW_MS)) return "";
+  if (!(ms > 0 && ms <= lead * 60_000)) return "";
   if (ms < 60_000) return "now";
-  return `${Math.min(90, Math.ceil(ms / 60_000))}m`;
+  return `${Math.ceil(ms / 60_000)}m`;
 }
 
 export function formatWhen(iso, nowMs) {
@@ -66,13 +77,13 @@ export function formatWhen(iso, nowMs) {
   return `${day} ${time}`;
 }
 
-export function tooltip(state, now) {
+export function tooltip(state, now, leadMinutes = state?.leadMinutes) {
   if (!state || state.status === "loading") return "Next meeting";
   if (state.status === "setup") return "Add a Google Calendar client id";
   if (state.status === "signed_out") return "Sign in to Chrome to see your next meeting";
   if (state.status === "error") return "Next meeting unavailable";
   if (state.next) {
-    const badge = badgeText(state.next.start, now);
+    const badge = badgeText(state.next.start, now, leadMinutes);
     if (badge === "now") return `${state.next.summary} starting now`;
     if (badge) return `${state.next.summary} in ${badge.slice(0, -1)} min`;
     return `${state.next.summary} at ${formatWhen(state.next.start, now)}`;

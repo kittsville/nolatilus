@@ -1,4 +1,10 @@
-import { badgeText, pickMeetings, tooltip, WINDOW_MS } from "./shared.js";
+import {
+  badgeText,
+  LEAD_STORAGE_KEY,
+  normalizeLeadMinutes,
+  pickMeetings,
+  tooltip,
+} from "./shared.js";
 
 const STATE_KEY = "state";
 const REFRESH_MINUTES = 15;
@@ -17,6 +23,10 @@ chrome.runtime.onStartup.addListener(() => {
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "tick") onTick();
   else refresh();
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes[LEAD_STORAGE_KEY]) reapply();
 });
 
 if (chrome.identity.onSignInChanged) {
@@ -106,6 +116,12 @@ async function doRefresh() {
   }
 }
 
+async function reapply() {
+  const state = await getState();
+  await applyPresentation(state);
+  await arm(state);
+}
+
 async function onTick() {
   const state = await getState();
   if (state.status !== "ok" || !state.next) return;
@@ -168,14 +184,15 @@ async function arm(state) {
   await chrome.alarms.create("refresh", { periodInMinutes: REFRESH_MINUTES });
 
   const now = Date.now();
+  const leadMs = normalizeLeadMinutes(state.leadMinutes) * 60_000;
   const wakes = [];
   if (state.next) {
     const untilStart = Date.parse(state.next.start) - now;
-    if (untilStart > 0 && untilStart < WINDOW_MS) {
+    if (untilStart > 0 && untilStart <= leadMs) {
       await chrome.alarms.create("tick", { periodInMinutes: 1 });
     }
     if (untilStart > 0) {
-      wakes.push(untilStart < WINDOW_MS ? untilStart : untilStart - WINDOW_MS);
+      wakes.push(untilStart <= leadMs ? untilStart : untilStart - leadMs);
     }
   }
   if (state.current) {
@@ -193,14 +210,17 @@ async function arm(state) {
 
 async function applyPresentation(state) {
   const now = Date.now();
+  const leadMinutes = normalizeLeadMinutes(state.leadMinutes);
   const text =
-    state.status === "ok" && state.next ? badgeText(state.next.start, now) : "";
+    state.status === "ok" && state.next
+      ? badgeText(state.next.start, now, leadMinutes)
+      : "";
   await chrome.action.setBadgeBackgroundColor({ color: BADGE_COLOR });
   if (chrome.action.setBadgeTextColor) {
     await chrome.action.setBadgeTextColor({ color: "#FFFFFF" });
   }
   await chrome.action.setBadgeText({ text });
-  await chrome.action.setTitle({ title: tooltip(state, now) });
+  await chrome.action.setTitle({ title: tooltip(state, now, leadMinutes) });
 }
 
 async function authToken(interactive) {
@@ -237,20 +257,26 @@ function errorState(error) {
   };
 }
 
+async function getLeadMinutes() {
+  const stored = await chrome.storage.local.get(LEAD_STORAGE_KEY);
+  return normalizeLeadMinutes(stored[LEAD_STORAGE_KEY]);
+}
+
 async function getState() {
   const stored = await chrome.storage.session.get(STATE_KEY);
-  return (
-    stored[STATE_KEY] ?? {
-      status: "loading",
-      error: null,
-      fetchedAt: null,
-      current: null,
-      next: null,
-    }
-  );
+  const state = stored[STATE_KEY] ?? {
+    status: "loading",
+    error: null,
+    fetchedAt: null,
+    current: null,
+    next: null,
+  };
+  state.leadMinutes = await getLeadMinutes();
+  return state;
 }
 
 async function setState(state) {
-  await chrome.storage.session.set({ [STATE_KEY]: state });
-  return state;
+  const { leadMinutes, ...stored } = state;
+  await chrome.storage.session.set({ [STATE_KEY]: stored });
+  return { ...stored, leadMinutes: leadMinutes ?? (await getLeadMinutes()) };
 }

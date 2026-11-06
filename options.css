@@ -1,0 +1,45 @@
+:root {
+  color-scheme: light;
+  --purple: #6419ff;
+  --ink: #1c1433;
+  --muted: #675f7a;
+}
+
+body {
+  margin: 0;
+  padding: 16px;
+  color: var(--ink);
+  font: 13px/1.4 system-ui, sans-serif;
+}
+
+form {
+  display: grid;
+  gap: 10px;
+  width: 280px;
+}
+
+input {
+  width: 6em;
+  padding: 8px;
+  border: 1px solid #ddd6ee;
+  border-radius: 8px;
+  font: inherit;
+}
+
+button {
+  width: fit-content;
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: var(--purple);
+  color: white;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+#status {
+  min-height: 1.2em;
+  margin: 0;
+  color: var(--muted);
+}

@@ -27,7 +27,14 @@ function header() {
   const icon = document.createElement("img");
   icon.src = "icons/32.png";
   icon.alt = "";
-  row.append(icon, "Nolatilus");
+  const settings = document.createElement("button");
+  settings.type = "button";
+  settings.className = "settings";
+  settings.textContent = "Settings";
+  settings.addEventListener("click", () => {
+    chrome.runtime.openOptionsPage();
+  });
+  row.append(icon, "Nolatilus", settings);
   return row;
 }
 
@@ -83,7 +90,7 @@ function calendarView(state) {
     return fragment;
   }
   if (state.current) fragment.append(currentCard(state.current, now));
-  if (state.next) fragment.append(nextCard(state.next, now));
+  if (state.next) fragment.append(nextCard(state.next, now, state.leadMinutes));
   const link = state.next?.htmlLink || state.current?.htmlLink || CALENDAR_HOME;
   fragment.append(openLink(link, "Open in Calendar"));
   return fragment;
@@ -93,8 +100,8 @@ function currentCard(meeting, now) {
   return card("Now", meeting.summary, `Until ${formatWhen(meeting.end, now)}`);
 }
 
-function nextCard(meeting, now) {
-  const badge = badgeText(meeting.start, now);
+function nextCard(meeting, now, leadMinutes) {
+  const badge = badgeText(meeting.start, now, leadMinutes);
   const cardNode = document.createElement("section");
   cardNode.className = "card";
   if (badge) {
