@@ -1,6 +1,7 @@
 export const DEFAULT_LEAD_MINUTES = 90;
 export const MAX_LEAD_MINUTES = 999;
 export const LEAD_STORAGE_KEY = "leadMinutes";
+export const IGNORED_TITLES_KEY = "ignoredTitles";
 
 const SKIPPED_TYPES = new Set([
   "workingLocation",
@@ -11,12 +12,14 @@ const SKIPPED_TYPES = new Set([
 
 const CALENDAR_HOME = "https://calendar.google.com/calendar/r";
 
-export function isMeeting(event) {
+export function isMeeting(event, ignored = []) {
   if (!event?.start?.dateTime || !event?.end?.dateTime) return false;
   if (event.status === "cancelled") return false;
   if (SKIPPED_TYPES.has(event.eventType)) return false;
   const self = event.attendees?.find((attendee) => attendee.self);
   if (self?.responseStatus === "declined") return false;
+  const title = (event.summary?.trim() || "(No title)").toLowerCase();
+  if (ignored.some((phrase) => title.includes(phrase))) return false;
   return true;
 }
 
@@ -30,8 +33,16 @@ export function normalize(event) {
   };
 }
 
-export function pickMeetings(items, now) {
-  const meetings = (items ?? []).filter(isMeeting).map(normalize);
+export function ignoredTitles(value) {
+  if (typeof value !== "string") return [];
+  return value
+    .split("\n")
+    .map((line) => line.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function pickMeetings(items, now, ignored = []) {
+  const meetings = (items ?? []).filter((event) => isMeeting(event, ignored)).map(normalize);
   const current =
     meetings.find((meeting) => {
       const start = Date.parse(meeting.start);

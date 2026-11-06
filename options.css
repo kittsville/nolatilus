@@ -18,12 +18,21 @@ form {
   width: 280px;
 }
 
-input {
-  width: 6em;
+input,
+textarea {
   padding: 8px;
   border: 1px solid #ddd6ee;
   border-radius: 8px;
   font: inherit;
+}
+
+input {
+  width: 6em;
+}
+
+textarea {
+  width: 100%;
+  resize: vertical;
 }
 
 button {

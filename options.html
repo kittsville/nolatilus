@@ -9,6 +9,8 @@
     <form id="settings">
       <label for="lead">Displays badge when next meeting is under this many minutes</label>
       <input id="lead" name="lead" type="number" min="1" max="999" step="1" required />
+      <label for="ignored">Ignore events whose title contains any of these lines</label>
+      <textarea id="ignored" name="ignored" rows="5" spellcheck="false"></textarea>
       <button type="submit">Save</button>
       <p id="status" role="status"></p>
     </form>

@@ -1,5 +1,7 @@
 import {
   badgeText,
+  IGNORED_TITLES_KEY,
+  ignoredTitles,
   LEAD_STORAGE_KEY,
   normalizeLeadMinutes,
   pickMeetings,
@@ -26,7 +28,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes[LEAD_STORAGE_KEY]) reapply();
+  if (area !== "local") return;
+  if (changes[IGNORED_TITLES_KEY]) refresh();
+  else if (changes[LEAD_STORAGE_KEY]) reapply();
 });
 
 if (chrome.identity.onSignInChanged) {
@@ -88,7 +92,7 @@ async function doRefresh() {
 
   try {
     const items = await loadEvents(token);
-    const { current, next } = pickMeetings(items, Date.now());
+    const { current, next } = pickMeetings(items, Date.now(), await getIgnoredTitles());
     const state = await setState({
       status: "ok",
       error: null,
@@ -260,6 +264,11 @@ function errorState(error) {
 async function getLeadMinutes() {
   const stored = await chrome.storage.local.get(LEAD_STORAGE_KEY);
   return normalizeLeadMinutes(stored[LEAD_STORAGE_KEY]);
+}
+
+async function getIgnoredTitles() {
+  const stored = await chrome.storage.local.get(IGNORED_TITLES_KEY);
+  return ignoredTitles(stored[IGNORED_TITLES_KEY]);
 }
 
 async function getState() {
